@@ -1,0 +1,44 @@
+#!/bin/zsh
+
+set -x
+set -e
+
+WAV1=$(uuidgen).wav
+WAV2=${WAV1:r}_FILTERED.wav
+MP3=$(uuidgen).mp3
+
+if [[ "$1" =~ ^https?:// ]]; then
+    TEMPLATE="$(uuidgen).ext"
+    youtube-dl --extract-audio --audio-format best "$1" -o $TEMPLATE
+    if [[ -f ${TEMPLATE:r}.opus ]]; then
+        SOURCE=${TEMPLATE:r}.opus
+    elif [[ -f ${TEMPLATE:r}.m4a ]]; then
+        SOURCE=${TEMPLATE:r}.m4a
+    elif [[ -f ${TEMPLATE:r}.aac ]]; then
+        SOURCE=${TEMPLATE:r}.aac
+    else
+        exit 1
+    fi
+else
+    SOURCE="$1"
+fi
+
+# Keep one channel and strip the other one (mono)
+ffmpeg -loglevel quiet -i "$SOURCE" -filter:a 'pan=mono|c0=FL' -f wav $WAV1
+
+# Filters (in order):
+#  - Low cut 60Hz
+#  - EQ 8kHz, Q=1, +6dB (more precise voice)
+#  - EQ 200Hz, Q=1, +6dB (warmer voice)
+#  - Loudness normalization
+ffmpeg -loglevel quiet -i $WAV1 \
+    -filter:a 'highpass=f=60, equalizer=f=8000:g=6:w=1:t=q, equalizer=f=200:g=6:w=1:t=q, loudnorm=I=-16:LRA=11:TP=-1.5' \
+    -f wav $WAV2
+
+# MP3 coversion, low bitrate shoud be enough (voice, mono)
+ffmpeg -loglevel quiet -i $WAV2 -c:a mp3 -b:a 64k "$MP3"
+
+rm $WAV1
+rm $WAV2
+
+echo "$MP3"
