@@ -1,0 +1,2 @@
+# hassaku
+Hassaku is... strange.
