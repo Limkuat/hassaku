@@ -35,7 +35,7 @@ ffmpeg -loglevel quiet -i $WAV1 \
     -filter:a 'highpass=f=60, equalizer=f=8000:g=6:w=1:t=q, equalizer=f=200:g=6:w=1:t=q, loudnorm=I=-16:LRA=11:TP=-1.5' \
     -f wav $WAV2
 
-# MP3 coversion, low bitrate shoud be enough (voice, mono)
+# MP3 conversion, low bitrate shoud be enough (voice, mono)
 ffmpeg -loglevel quiet -i $WAV2 -c:a mp3 -b:a 64k "$MP3"
 
 rm $WAV1
